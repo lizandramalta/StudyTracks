@@ -6,24 +6,16 @@
 //
 
 import Foundation
+
 struct ExportService: Sendable {
-    func export(track: LearningTrack, as format: ExportFormat) throws ->
-    Data {
-        switch format {
-        case .json:
-            return try JSONEncoder().encode(track)
-        case .csv:
-            var lines =
-            ["id,title,goalDescription,scoringMethod,sessionDate,durationMinutes,effortNote"]
-            let df = ISO8601DateFormatter()
-            for s in track.sessions {
-                lines.append("\(track.id.uuidString),\(escape(track.title)),\(escape(track.goalDescription)),\(track.scoringMethod.rawValue),\(df.string(from: s.date)),\(s.durationMinutes),\(s.effortNote)")
-            }
-            return lines.joined(separator: "\n").data(using: .utf8) ?? Data()
-        }
+    let provider: ExportFileProvider
+    
+    init(provider: ExportFileProvider = .init()) {
+        self.provider = provider
     }
-    private func escape(_
-                        s: String) -> String {
-        if s.contains(",") { return "\"\(s)\"" } else { return s }
+    
+    func export(track: LearningTrack, as format: ExportFormat) throws -> Data {
+        let strategy = provider.strategy(for: format)
+        return try strategy.export(track: track)
     }
 }
